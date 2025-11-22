@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система очереди МФЦ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Стили для авторизации */
+        .login-container {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 400px;
+            margin: 50px auto;
+            text-align: center;
+        }
+
+        .login-title {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        .user-type-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .user-type-btn {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .user-type-btn.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .login-form {
+            display: none;
+        }
+
+        .login-form.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        /* Основной интерфейс */
+        .container {
+            display: none;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .tablet-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .tablet-title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        .buttons-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .ticket-btn {
+            padding: 25px;
+            font-size: 20px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .ticket-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .ticket-btn.type2 {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+        }
+
+        .ticket-btn.type3 {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+        }
+
+        /* Стили для менеджеров */
+        .manager-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .manager-title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        .queues-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .queue-box {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border: 2px solid #dee2e6;
+        }
+
+        .queue-title {
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #dee2e6;
+            color: #333;
+        }
+
+        .queue-list {
+            min-height: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .queue-item {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .queue-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .queue-item.current {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+        }
+
+        .ticket-id {
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .ticket-type {
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: white;
+        }
+
+        .type-1 { background: #4CAF50; }
+        .type-2 { background: #2196F3; }
+        .type-3 { background: #FF9800; }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .action-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .take-btn {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+        }
+
+        .complete-btn {
+            background: linear-gradient(45deg, #dc3545, #fd7e14);
+            color: white;
+        }
+
+        .action-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .action-btn:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+
+        .counter-info {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .user-info {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .queues-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Форма авторизации -->
+    <div id="loginPage" class="login-container">
+        <h2 class="login-title">🔐 Вход в систему</h2>
+        
+        <div class="user-type-selector">
+            <button class="user-type-btn active" onclick="showLoginForm('tablet')">Планшет</button>
+            <button class="user-type-btn" onclick="showLoginForm('manager')">Менеджер</button>
+        </div>
+
+        <!-- Форма для планшета -->
+        <div id="tabletLogin" class="login-form active">
+            <div class="form-group">
+                <label>Логин:</label>
+                <input type="text" id="tabletLoginInput" placeholder="Введите логин">
+            </div>
+            <div class="form-group">
+                <label>Пароль:</label>
+                <input type="password" id="tabletPasswordInput" placeholder="Введите пароль">
+            </div>
+            <button class="login-btn" onclick="login('tablet')">Войти как планшет</button>
+        </div>
+
+        <!-- Форма для менеджера -->
+        <div id="managerLogin" class="login-form">
+            <div class="form-group">
+                <label>Логин менеджера:</label>
+                <input type="text" id="managerLoginInput" placeholder="manager1, manager2, manager3">
+            </div>
+            <div class="form-group">
+                <label>Пароль:</label>
+                <input type="password" id="managerPasswordInput" placeholder="password">
+            </div>
+            <button class="login-btn" onclick="login('manager')">Войти как менеджер</button>
+        </div>
+    </div>
+
+    <!-- Интерфейс планшета -->
+    <div id="tabletInterface" class="container">
+        <div class="user-info">
+            Планшет <button class="logout-btn" onclick="logout()">Выйти</button>
+        </div>
+        
+        <div class="tablet-section">
+            <h2 class="tablet-title">🎫 Получить талон</h2>
+            <div class="buttons-grid">
+                <button class="ticket-btn" onclick="createTicket(1)">
+                    Услуга 1<br>
+                    <small>Стандартная услуга</small>
+                </button>
+                <button class="ticket-btn type2" onclick="createTicket(2)">
+                    Услуга 2<br>
+                    <small>Специальная услуга</small>
+                </button>
+                <button class="ticket-btn type3" onclick="createTicket(3)">
+                    Услуга 3<br>
+                    <small>Консультация</small>
+                </button>
+            </div>
+            <div class="counter-info" id="counterInfo">
+                Счетчик обновится через: <span id="resetTimer">24:00:00</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Интерфейс менеджера -->
+    <div id="managerInterface" class="container">
+        <div class="user-info">
+            <span id="managerNameDisplay">Менеджер</span>
+            <button class="logout-btn" onclick="logout()">Выйти</button>
+        </div>
+
+        <div class="manager-section">
+            <h2 class="manager-title">🪟 Рабочее место менеджера</h2>
+            
+            <div class="queues-container">
+                <!-- Активные талоны -->
+                <div class="queue-box">
+                    <h3 class="queue-title">📋 Активные талоны</h3>
+                    <div class="queue-list" id="activeTicketsList">
+                        <!-- Список активных талонов -->
+                    </div>
+                </div>
+
+                <!-- Мои текущие талоны -->
+                <div class="queue-box">
+                    <h3 class="queue-title">👤 Мои талоны</h3>
+                    <div class="queue-list" id="myTicketsList">
+                        <!-- Список талонов менеджера -->
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="action-btn take-btn" id="takeTicketBtn" onclick="takeTicket()" disabled>
+                            Взять выбранный
+                        </button>
+                        <button class="action-btn complete-btn" id="completeTicketBtn" onclick="completeTicket()" disabled>
+                            Завершить
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Данные пользователей
+        const USERS = {
+            tablet: { login: 'tablet', password: 'tablet123' },
+            manager1: { login: 'manager1', password: 'pass1' },
+            manager2: { login: 'manager2', password: 'pass2' },
+            manager3: { login: 'manager3', password: 'pass3' }
+        };
+
+        // Инициализация
+        function initData() {
+            if (!getCookie('tickets')) {
+                setCookie('tickets', []);
+            }
+            if (!getCookie('counters')) {
+                const now = new Date();
+                setCookie('counters', {
+                    lastReset: now.getTime(),
+                    counts: {1: 0, 2: 0, 3: 0}
+                });
+            }
+            if (!getCookie('assignedTickets')) {
+                setCookie('assignedTickets', {});
+            }
+            startResetTimer();
+        }
+
+        // Куки функции
+        function setCookie(name, value, days = 365) {
+            const expires = new Date();
+            expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+            document.cookie = `${name}=${JSON.stringify(value)};expires=${expires.toUTCString()};path=/`;
+        }
+
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for(let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return JSON.parse(c.substring(nameEQ.length, c.length));
+            }
+            return null;
+        }
+
+        // Авторизация
+        function showLoginForm(type) {
+            document.querySelectorAll('.user-type-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.login-form').forEach(form => form.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(type + 'Login').classList.add('active');
+        }
+
+        function login(userType) {
+            if (userType === 'tablet') {
+                const login = document.getElementById('tabletLoginInput').value;
+                const password = document.getElementById('tabletPasswordInput').value;
+                
+                if (login === USERS.tablet.login && password === USERS.tablet.password) {
+                    setCookie('currentUser', { type: 'tablet', login: 'tablet' });
+                    showTabletInterface();
+                } else {
+                    alert('Неверный логин или пароль для планшета!');
+                }
+            } else {
+                const login = document.getElementById('managerLoginInput').value;
+                const password = document.getElementById('managerPasswordInput').value;
+                
+                if (USERS[login] && USERS[login].password === password) {
+                    setCookie('currentUser', { type: 'manager', login: login });
+                    showManagerInterface(login);
+                } else {
+                    alert('Неверный логин или пароль менеджера!');
+                }
+            }
+        }
+
+        function logout() {
+            setCookie('currentUser', null);
+            showLoginPage();
+        }
+
+        // Показать интерфейсы
+        function showLoginPage() {
+            document.getElementById('loginPage').style.display = 'block';
+            document.getElementById('tabletInterface').style.display = 'none';
+            document.getElementById('managerInterface').style.display = 'none';
+        }
+
+        function showTabletInterface() {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('tabletInterface').style.display = 'grid';
+            document.getElementById('managerInterface').style.display = 'none';
+            initData();
+        }
+
+        function showManagerInterface(managerLogin) {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('tabletInterface').style.display = 'none';
+            document.getElementById('managerInterface').style.display = 'grid';
+            document.getElementById('managerNameDisplay').textContent = managerLogin;
+            initData();
+            updateManagerInterface();
+        }
+
+        // Проверка авторизации при загрузке
+        function checkAuth() {
+            const currentUser = getCookie('currentUser');
+            if (currentUser) {
+                if (currentUser.type === 'tablet') {
+                    showTabletInterface();
+                } else {
+                    showManagerInterface(currentUser.login);
+                }
+            } else {
+                showLoginPage();
+            }
+        }
+
+        // Функции для талонов
+        let selectedTicketId = null;
+
+        function createTicket(type) {
+            const counters = getCookie('counters');
+            const tickets = getCookie('tickets');
+            
+            // Проверяем сброс счетчика
+            const now = new Date().getTime();
+            if (now - counters.lastReset >= 24 * 60 * 60 * 1000) {
+                counters.counts = {1: 0, 2: 0, 3: 0};
+                counters.lastReset = now;
+            }
+            
+            // Создаем талон
+            counters.counts[type]++;
+            const ticketId = `${type}-${counters.counts[type].toString().padStart(3, '0')}`;
+            
+            const newTicket = {
+                id: ticketId,
+                type: type,
+                status: 'waiting',
+                created: new Date().toLocaleTimeString(),
+                timestamp: now
+            };
+            
+            tickets.push(newTicket);
+            
+            setCookie('counters', counters);
+            setCookie('tickets', tickets);
+            
+            // Анимация
+            const btn = event.target;
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => btn.style.transform = 'scale(1)', 150);
+            
+            alert(`Талон ${ticketId} создан!`);
+        }
+
+        function updateManagerInterface() {
+            const tickets = getCookie('tickets') || [];
+            const assignedTickets = getCookie('assignedTickets') || {};
+            const currentUser = getCookie('currentUser');
+            
+            if (!currentUser || currentUser.type !== 'manager') return;
+            
+            const managerLogin = currentUser.login;
+            
+            // Активные талоны (ожидающие)
+            const activeTicketsList = document.getElementById('activeTicketsList');
+            const waitingTickets = tickets.filter(t => t.status === 'waiting');
+            
+            activeTicketsList.innerHTML = '';
+            waitingTickets.forEach(ticket => {
+                const ticketElement = createTicketElement(ticket, true);
+                activeTicketsList.appendChild(ticketElement);
+            });
+            
+            if (waitingTickets.length === 0) {
+                activeTicketsList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Нет активных талонов</div>';
+            }
+            
+            // Талоны текущего менеджера
+            const myTicketsList = document.getElementById('myTicketsList');
+            const myTickets = tickets.filter(t => 
+                t.status === 'in_progress' && assignedTickets[t.id] === managerLogin
+            );
+            
+            myTicketsList.innerHTML = '';
+            myTickets.forEach(ticket => {
+                const ticketElement = createTicketElement(ticket, false);
+                ticketElement.classList.add('current');
+                myTicketsList.appendChild(ticketElement);
+            });
+            
+            if (myTickets.length === 0) {
+                myTicketsList.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Нет текущих талонов</div>';
+            }
+            
+            // Обновляем кнопки
+            document.getElementById('takeTicketBtn').disabled = !selectedTicketId;
+            document.getElementById('completeTicketBtn').disabled = myTickets.length === 0;
+        }
+
+        function createTicketElement(ticket, clickable) {
+            const div = document.createElement('div');
+            div.className = 'queue-item';
+            div.innerHTML = `
+                <div>
+                    <div class="ticket-id">Талон ${ticket.id}</div>
+                    <div style="font-size: 12px; color: #666;">Создан: ${ticket.created}</div>
+                </div>
+                <span class="ticket-type type-${ticket.type}">Услуга ${ticket.type}</span>
+            `;
+            
+            if (clickable) {
+                div.onclick = () => selectTicket(ticket.id);
+            }
+            
+            return div;
+        }
+
+        function selectTicket(ticketId) {
+            selectedTicketId = ticketId;
+            document.querySelectorAll('.queue-item').forEach(item => {
+                item.style.background = '';
+            });
+            event.target.closest('.queue-item').style.background = '#e3f2fd';
+            updateManagerInterface();
+        }
+
+        function takeTicket() {
+            if (!selectedTicketId) return;
+            
+            const tickets = getCookie('tickets');
+            const assignedTickets = getCookie('assignedTickets');
+            const currentUser = getCookie('currentUser');
+            
+            const ticketIndex = tickets.findIndex(t => t.id === selectedTicketId);
+            if (ticketIndex !== -1 && tickets[ticketIndex].status === 'waiting') {
+                tickets[ticketIndex].status = 'in_progress';
+                assignedTickets[selectedTicketId] = currentUser.login;
+                
+                setCookie('tickets', tickets);
+                setCookie('assignedTickets', assignedTickets);
+                
+                selectedTicketId = null;
+                updateManagerInterface();
+            }
+        }
+
+        function completeTicket() {
+            const tickets = getCookie('tickets');
+            const assignedTickets = getCookie('assignedTickets');
+            const currentUser = getCookie('currentUser');
+            
+            const myTickets = tickets.filter(t => 
+                t.status === 'in_progress' && assignedTickets[t.id] === currentUser.login
+            );
+            
+            if (myTickets.length > 0) {
+                const ticketId = myTickets[0].id;
+                const ticketIndex = tickets.findIndex(t => t.id === ticketId);
+                
+                if (ticketIndex !== -1) {
+                    tickets.splice(ticketIndex, 1);
+                    delete assignedTickets[ticketId];
+                    
+                    setCookie('tickets', tickets);
+                    setCookie('assignedTickets', assignedTickets);
+                    updateManagerInterface();
+                }
+            }
+        }
+
+        // Таймер сброса
+        function startResetTimer() {
+            function updateTimer() {
+                const counters = getCookie('counters');
+                if (!counters) return;
+                
+                const now = new Date().getTime();
+                const timePassed = now - counters.lastReset;
+                const timeLeft = 24 * 60 * 60 * 1000 - timePassed;
+                
+                if (timeLeft <= 0) {
+                    counters.counts = {1: 0, 2: 0, 3: 0};
+                    counters.lastReset = now;
+                    setCookie('counters', counters);
+                }
+                
+                const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+                const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                
+                const timerElement = document.getElementById('resetTimer');
+                if (timerElement) {
+                    timerElement.textContent = 
+                        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+            }
+            
+            updateTimer();
+            setInterval(updateTimer, 1000);
+        }
+
+        // Авто-обновление интерфейса менеджера
+        setInterval(() => {
+            const currentUser = getCookie('currentUser');
+            if (currentUser && currentUser.type === 'manager') {
+                updateManagerInterface();
+            }
+        }, 2000);
+
+        // Запуск при загрузке
+        document.addEventListener('DOMContentLoaded', checkAuth);
+    </script>
+</body>
+</html>
