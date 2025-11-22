@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система очереди МФЦ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Стили для планшета */
+        .tablet-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .tablet-title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        .buttons-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .ticket-btn {
+            padding: 25px;
+            font-size: 20px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .ticket-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .ticket-btn.type2 {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+        }
+
+        .ticket-btn.type3 {
+            background: linear-gradient(45deg, #FF9800, #F57C00);
+        }
+
+        /* Стили для менеджеров */
+        .managers-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .manager-window {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            min-height: 400px;
+        }
+
+        .window-title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .queue-list {
+            min-height: 300px;
+            border: 2px dashed #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .queue-item {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            cursor: grab;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .queue-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .queue-item.dragging {
+            opacity: 0.5;
+        }
+
+        .ticket-id {
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .ticket-type {
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: white;
+        }
+
+        .type-1 { background: #4CAF50; }
+        .type-2 { background: #2196F3; }
+        .type-3 { background: #FF9800; }
+
+        .complete-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(45deg, #FF416C, #FF4B2B);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .complete-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .complete-btn:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 65, 108, 0.4);
+        }
+
+        .current-ticket {
+            background: linear-gradient(45deg, #667eea, #764ba2) !important;
+            color: white;
+            border: none;
+        }
+
+        .counter-info {
+            text-align: center;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Планшет для выдачи талонов -->
+        <div class="tablet-section">
+            <h2 class="tablet-title">🎫 Получить талон</h2>
+            <div class="buttons-grid">
+                <button class="ticket-btn" onclick="createTicket(1)">
+                    Услуга 1<br>
+                    <small>Стандартная услуга</small>
+                </button>
+                <button class="ticket-btn type2" onclick="createTicket(2)">
+                    Услуга 2<br>
+                    <small>Специальная услуга</small>
+                </button>
+                <button class="ticket-btn type3" onclick="createTicket(3)">
+                    Услуга 3<br>
+                    <small>Консультация</small>
+                </button>
+            </div>
+            <div class="counter-info" id="counterInfo">
+                Счетчик обновится через: <span id="resetTimer">24:00:00</span>
+            </div>
+        </div>
+
+        <!-- Окна менеджеров -->
+        <div class="managers-section">
+            <div class="manager-window">
+                <h3 class="window-title">🪟 Окно 1</h3>
+                <div class="queue-list" id="window1Queue" 
+                     ondrop="dropTicket(event)" 
+                     ondragover="allowDrop(event)">
+                    <!-- Талоны будут здесь -->
+                </div>
+                <button class="complete-btn" onclick="completeTicket(1)" disabled>
+                    Завершить обслуживание
+                </button>
+            </div>
+
+            <div class="manager-window">
+                <h3 class="window-title">🪟 Окно 2</h3>
+                <div class="queue-list" id="window2Queue"
+                     ondrop="dropTicket(event)" 
+                     ondragover="allowDrop(event)">
+                    <!-- Талоны будут здесь -->
+                </div>
+                <button class="complete-btn" onclick="completeTicket(2)" disabled>
+                    Завершить обслуживание
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Куки функции
+        function setCookie(name, value, days) {
+            const expires = new Date();
+            expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+            document.cookie = `${name}=${JSON.stringify(value)};expires=${expires.toUTCString()};path=/`;
+        }
+
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for(let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return JSON.parse(c.substring(nameEQ.length, c.length));
+            }
+            return null;
+        }
+
+        // Инициализация данных
+        function initData() {
+            if (!getCookie('tickets')) {
+                setCookie('tickets', []);
+            }
+            if (!getCookie('counters')) {
+                const now = new Date();
+                setCookie('counters', {
+                    lastReset: now.getTime(),
+                    counts: {1: 0, 2: 0, 3: 0}
+                });
+            }
+            if (!getCookie('windows')) {
+                setCookie('windows', {
+                    1: null,
+                    2: null
+                });
+            }
+            updateDisplay();
+            startResetTimer();
+        }
+
+        // Создание талона
+        function createTicket(type) {
+            const counters = getCookie('counters');
+            const tickets = getCookie('tickets');
+            
+            // Проверяем сброс счетчика
+            const now = new Date().getTime();
+            if (now - counters.lastReset >= 24 * 60 * 60 * 1000) {
+                counters.counts = {1: 0, 2: 0, 3: 0};
+                counters.lastReset = now;
+            }
+            
+            // Создаем талон
+            counters.counts[type]++;
+            const ticketId = `${type}-${counters.counts[type].toString().padStart(3, '0')}`;
+            
+            const newTicket = {
+                id: ticketId,
+                type: type,
+                status: 'waiting',
+                created: new Date().toLocaleTimeString()
+            };
+            
+            tickets.push(newTicket);
+            
+            setCookie('counters', counters);
+            setCookie('tickets', tickets);
+            updateDisplay();
+            
+            // Анимация
+            const btn = event.target;
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => btn.style.transform = 'scale(1)', 150);
+        }
+
+        // Drag & Drop функции
+        function allowDrop(ev) {
+            ev.preventDefault();
+        }
+
+        function dragTicket(ev) {
+            ev.dataTransfer.setData("text", ev.target.dataset.ticketId);
+        }
+
+        function dropTicket(ev) {
+            ev.preventDefault();
+            const ticketId = ev.dataTransfer.getData("text");
+            const windowId = ev.target.id.replace('window', '').replace('Queue', '');
+            
+            const windows = getCookie('windows');
+            if (!windows[windowId]) {
+                windows[windowId] = ticketId;
+                setCookie('windows', windows);
+                
+                const tickets = getCookie('tickets');
+                const ticketIndex = tickets.findIndex(t => t.id === ticketId);
+                if (ticketIndex !== -1) {
+                    tickets[ticketIndex].status = 'in_progress';
+                    setCookie('tickets', tickets);
+                }
+                
+                updateDisplay();
+            }
+        }
+
+        // Завершение обслуживания
+        function completeTicket(windowId) {
+            const windows = getCookie('windows');
+            const ticketId = windows[windowId];
+            
+            if (ticketId) {
+                const tickets = getCookie('tickets');
+                const ticketIndex = tickets.findIndex(t => t.id === ticketId);
+                
+                if (ticketIndex !== -1) {
+                    tickets.splice(ticketIndex, 1);
+                    setCookie('tickets', tickets);
+                }
+                
+                windows[windowId] = null;
+                setCookie('windows', windows);
+                updateDisplay();
+            }
+        }
+
+        // Обновление интерфейса
+        function updateDisplay() {
+            const tickets = getCookie('tickets') || [];
+            const windows = getCookie('windows') || {1: null, 2: null};
+            
+            // Общая очередь
+            const waitingTickets = tickets.filter(t => t.status === 'waiting');
+            
+            // Окно 1
+            const window1Queue = document.getElementById('window1Queue');
+            const window1Btn = document.querySelector('button[onclick="completeTicket(1)"]');
+            updateWindowQueue(1, window1Queue, window1Btn, windows, tickets);
+            
+            // Окно 2
+            const window2Queue = document.getElementById('window2Queue');
+            const window2Btn = document.querySelector('button[onclick="completeTicket(2)"]');
+            updateWindowQueue(2, window2Queue, window2Btn, windows, tickets);
+        }
+
+        function updateWindowQueue(windowId, queueElement, button, windows, tickets) {
+            queueElement.innerHTML = '';
+            const currentTicketId = windows[windowId];
+            
+            if (currentTicketId) {
+                const ticket = tickets.find(t => t.id === currentTicketId);
+                if (ticket) {
+                    const ticketElement = createTicketElement(ticket, false);
+                    ticketElement.classList.add('current-ticket');
+                    queueElement.appendChild(ticketElement);
+                    button.disabled = false;
+                }
+            } else {
+                button.disabled = true;
+                queueElement.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Перетащите талон сюда</div>';
+            }
+        }
+
+        function createTicketElement(ticket, draggable) {
+            const div = document.createElement('div');
+            div.className = 'queue-item';
+            div.innerHTML = `
+                <div>
+                    <div class="ticket-id">Талон ${ticket.id}</div>
+                    <div style="font-size: 12px; color: #666;">Создан: ${ticket.created}</div>
+                </div>
+                <span class="ticket-type type-${ticket.type}">Услуга ${ticket.type}</span>
+            `;
+            
+            if (draggable) {
+                div.draggable = true;
+                div.dataset.ticketId = ticket.id;
+                div.ondragstart = dragTicket;
+            }
+            
+            return div;
+        }
+
+        // Таймер сброса
+        function startResetTimer() {
+            function updateTimer() {
+                const counters = getCookie('counters');
+                const now = new Date().getTime();
+                const timePassed = now - counters.lastReset;
+                const timeLeft = 24 * 60 * 60 * 1000 - timePassed;
+                
+                if (timeLeft <= 0) {
+                    // Сбрасываем счетчики
+                    counters.counts = {1: 0, 2: 0, 3: 0};
+                    counters.lastReset = now;
+                    setCookie('counters', counters);
+                    updateDisplay();
+                }
+                
+                const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+                const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+                
+                document.getElementById('resetTimer').textContent = 
+                    `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+            
+            updateTimer();
+            setInterval(updateTimer, 1000);
+        }
+
+        // Запуск при загрузке
+        document.addEventListener('DOMContentLoaded', initData);
+    </script>
+</body>
+</html>
